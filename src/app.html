@@ -1,0 +1,888 @@
+<title>おあいそ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* Layout: 片手で操作する店の道具。上に卓の状況、下にタブ、右下に大きなマイク。 */
+:root{
+  --bg:#f1f4f1; --surface:#ffffff; --sunk:#e6ebe7; --ink:#1b2321; --muted:#5b6864; --line:#d5ddd8;
+  --ai:#24466e; --ai-ink:#ffffff; --sugi:#5d7230; --sugi-soft:#e7edd8;
+  --warn:#a85213; --warn-soft:#fbeadb; --danger:#b3261e; --ok:#2b7a4b;
+  --f-disp:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif;
+  --r:12px; --nav-h:64px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#1a2220; --sunk:#232d2a; --ink:#e5ebe8; --muted:#9aa8a3; --line:#2e3a37;
+  --ai:#8db0dc; --ai-ink:#0e1a28; --sugi:#a9bf6c; --sugi-soft:#2a3320;
+  --warn:#eb9a5c; --warn-soft:#3a2716; --danger:#f08b84; --ok:#7cc89b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#1a2220; --sunk:#232d2a; --ink:#e5ebe8; --muted:#9aa8a3; --line:#2e3a37;
+  --ai:#8db0dc; --ai-ink:#0e1a28; --sugi:#a9bf6c; --sugi-soft:#2a3320;
+  --warn:#eb9a5c; --warn-soft:#3a2716; --danger:#f08b84; --ok:#7cc89b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--ai);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);
+  padding-block:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;align-items:center;gap:12px}
+.brand{font-family:var(--f-disp);font-size:20px;letter-spacing:.06em;white-space:nowrap}
+.top .today{margin-left:auto;text-align:right;line-height:1.2;font-size:12px;color:var(--muted)}
+.top .today b{display:block;font-size:17px;color:var(--ink)}
+main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:16px calc(var(--nav-h) + 110px + env(safe-area-inset-bottom,0px));max-width:980px;margin:0 auto}
+h2{font-family:var(--f-disp);font-size:22px;margin:0;text-wrap:balance}
+h3{font-size:13px;letter-spacing:.08em;color:var(--muted);margin:22px 0 8px;font-weight:700}
+.banner{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.banner button{margin-left:auto}
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 14px;min-height:44px;font-weight:700}
+.btn.pri{background:var(--ai);color:var(--ai-ink);border-color:var(--ai)}
+.btn.sugi{background:var(--sugi);color:var(--surface);border-color:var(--sugi)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger);border-color:var(--danger);background:transparent}
+.btn.sm{min-height:34px;padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.45}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+/* tables grid */
+.tables{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.tcard{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:12px;text-align:left;min-height:104px;display:flex;flex-direction:column;gap:4px}
+.tcard .tn{font-family:var(--f-disp);font-size:22px;line-height:1.1}
+.tcard.empty{background:transparent;border-style:dashed;color:var(--muted)}
+.tcard.busy{border-color:var(--ai);box-shadow:inset 4px 0 0 var(--ai)}
+.tcard .amt{font-size:18px;font-weight:700}
+.chips{display:flex;gap:4px;flex-wrap:wrap}
+.chip{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.sugi{background:var(--sugi-soft);color:var(--sugi)}
+/* ticket */
+.tk-head{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.tk-head .tn{font-family:var(--f-disp);font-size:30px;line-height:1}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.stepper button{border:0;background:transparent;width:40px;height:40px;font-size:20px;font-weight:700}
+.stepper span{min-width:2.4em;text-align:center;font-weight:700}
+.custbox{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:10px 12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.custbox .grow{font-size:13px}
+.lines{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.line{display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}
+.line:first-child{border-top:0}
+.line .nm{flex:1;min-width:0}
+.line .nm small{color:var(--muted);margin-left:4px}
+.line .sub{width:6.5em;text-align:right;font-weight:700}
+.line.new{animation:flash 1.2s ease-out}
+@keyframes flash{from{background:var(--sugi-soft)}to{background:transparent}}
+.empty-note{padding:18px 12px;color:var(--muted);text-align:center;font-size:13px}
+.tk-total{display:flex;align-items:center;gap:12px;margin:12px 0;flex-wrap:wrap}
+.tk-total .sum{font-family:var(--f-disp);font-size:30px}
+.cats{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-top:6px}
+.cats button{flex:none;border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px}
+.cats button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.quick{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:8px}
+.quick button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px;text-align:left;min-height:58px;font-weight:700;line-height:1.3}
+.quick button small{display:block;font-weight:400;color:var(--muted);font-size:11px}
+/* nav + mic */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(4,1fr);padding-bottom:env(safe-area-inset-bottom,0px);
+  padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+nav.tabs button{border:0;background:transparent;height:var(--nav-h);font-size:12px;font-weight:700;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-current="page"]{color:var(--ai)}
+.mic{position:fixed;z-index:7;right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));
+  width:84px;height:84px;border-radius:50%;border:0;background:var(--ai);color:var(--ai-ink);box-shadow:0 6px 18px rgba(0,0,0,.25);display:grid;place-items:center}
+.mic svg{width:38px;height:38px}
+.mic.on{background:var(--danger);color:#fff;animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(179,38,30,.45)}70%{box-shadow:0 0 0 18px rgba(179,38,30,0)}100%{box-shadow:0 0 0 0 rgba(179,38,30,0)}}
+.hf{position:fixed;z-index:7;right:calc(112px + env(safe-area-inset-right,0px));bottom:calc(var(--nav-h) + 30px + env(safe-area-inset-bottom,0px));
+  border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13px}
+.hf[aria-pressed="true"]{background:var(--sugi);border-color:var(--sugi);color:var(--surface)}
+.live{position:fixed;z-index:7;left:calc(16px + env(safe-area-inset-left,0px));right:calc(210px + env(safe-area-inset-right,0px));bottom:calc(var(--nav-h) + 22px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);color:var(--bg);border-radius:10px;padding:8px 12px;font-size:14px;min-height:40px}
+@media (max-width:520px){.live{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(var(--nav-h) + 112px + env(safe-area-inset-bottom,0px))}}
+/* sheet */
+.scrim{position:fixed;inset:0;z-index:20;background:rgba(10,14,13,.45);display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:640px;max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;
+  padding-block:18px calc(18px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sheet h2{margin-bottom:12px}
+.sheet .acts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.sheet .acts .btn{flex:1}
+.field{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+.field label{font-size:12px;font-weight:700;color:var(--muted)}
+.field input,.field select,.field textarea{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-height:44px;width:100%}
+.pad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pad button{height:56px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:20px;font-weight:700}
+.countdown{height:4px;background:var(--sunk);border-radius:2px;overflow:hidden;margin-top:12px}
+.countdown i{display:block;height:100%;background:var(--sugi);width:100%;transform-origin:left}
+.raw{font-size:13px;color:var(--muted);background:var(--bg);border-radius:8px;padding:6px 10px;margin-bottom:10px}
+.pv{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.pv select{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px;min-height:40px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;border:0;background:transparent;padding:10px 4px;font-weight:700;min-height:44px}
+.seg button[aria-pressed="true"]{background:var(--ai);color:var(--ai-ink)}
+.bill{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:15px}
+.bill .big{font-family:var(--f-disp);font-size:30px}
+/* reports */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.kpi span{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.04em}
+.kpi b{display:block;font-size:22px}
+.kpi.main{background:var(--ai);color:var(--ai-ink);border-color:var(--ai)}
+.kpi.main span{color:inherit;opacity:.85}
+.kpi.main b{font-family:var(--f-disp);font-size:28px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 12px;text-align:left;border-top:1px solid var(--line);white-space:nowrap}
+thead th{border-top:0;font-size:12px;color:var(--muted);background:var(--sunk)}
+td.r,th.r{text-align:right}
+tr.click{cursor:pointer}
+.bars{display:flex;align-items:flex-end;gap:4px;height:120px;padding:10px 8px 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.bars .b{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px;min-width:0}
+.bars .b i{display:block;width:100%;max-width:26px;background:var(--sugi);border-radius:3px 3px 0 0;min-height:1px}
+.bars .b.sel i{background:var(--ai)}
+.bars .b small{font-size:10px;color:var(--muted)}
+.list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.list > button{display:flex;gap:10px;align-items:center;text-align:left;border:0;border-top:1px solid var(--line);background:transparent;padding:12px;min-height:56px}
+.list > button:first-child{border-top:0}
+.toast{position:fixed;z-index:30;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 64px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;display:flex;gap:12px;align-items:center;width:max-content;max-width:calc(100% - 32px)}
+.toast button{white-space:nowrap;flex:none;border:0;background:transparent;color:var(--sugi-soft);font-weight:700;text-decoration:underline}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+
+<header class="top">
+  <div class="brand">おあいそ</div>
+  <div class="today num" id="todaySum"></div>
+</header>
+<main id="view"></main>
+<div class="live" id="live" hidden></div>
+<button class="hf" id="hfBtn" aria-pressed="false" title="話すたびに自動で聞き取ります">ハンズフリー</button>
+<button class="mic" id="micBtn" aria-label="音声で注文を入力">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+</button>
+<nav class="tabs" id="tabs">
+  <button data-tab="tables"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>卓</button>
+  <button data-tab="sales"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>売上</button>
+  <button data-tab="customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>お客さん</button>
+  <button data-tab="menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h14v16H5zM9 9h6M9 13h6M9 17h3"/></svg>メニュー・設定</button>
+</nav>
+<div id="sheetRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- utilities ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const yen = n => "¥" + Math.round(n || 0).toLocaleString("ja-JP");
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad2 = n => String(n).padStart(2, "0");
+const hm = ts => { const d = new Date(ts); return pad2(d.getHours()) + ":" + pad2(d.getMinutes()); };
+const KEY = "izk-data-v1";
+let storageOK = true;
+
+/* ---------- text normalisation & parsing ---------- */
+const KANA_NUM = [["ココノツ","9ツ"],["ヒトツ","1ツ"],["フタツ","2ツ"],["ミッツ","3ツ"],["ヨッツ","4ツ"],["イツツ","5ツ"],["ムッツ","6ツ"],["ナナツ","7ツ"],["ヤッツ","8ツ"],
+  ["イッパイ","1杯"],["ニハイ","2杯"],["サンバイ","3杯"],["イッポン","1本"],["ハンゴウ","半合"],["イチゴウ","1合"],["ニゴウ","2合"],["サンゴウ","3合"],["ヒトリ","1人"],["フタリ","2人"]];
+const KD = {"〇":0,"零":0,"一":1,"二":2,"三":3,"四":4,"五":5,"六":6,"七":7,"八":8,"九":9};
+function kanjiToNum(k){
+  const dig = s => s.split("").map(c => KD[c]).join("");
+  const parts = k.split("十");
+  if (parts.length === 1) return dig(k);
+  if (parts.length > 2) return k;
+  return String((parts[0] ? +dig(parts[0]) : 1) * 10 + (parts[1] ? +dig(parts[1]) : 0));
+}
+function norm(s){
+  s = String(s || "").normalize("NFKC").toLowerCase();
+  s = s.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+  s = s.replace(/[\s、。,.・!?「」『』()（）]/g, "");
+  for (const [k, v] of KANA_NUM) s = s.split(k).join(v);
+  s = s.replace(/号/g, "合");
+  s = s.replace(/[〇零一二三四五六七八九十]+/g, kanjiToNum);
+  return s;
+}
+/* ---------- data ---------- */
+function goOf(label){
+  const n = norm(label);
+  if (/半合/.test(n)) return 0.5;
+  const m = n.match(/(\d+(?:\.\d+)?)合/); if (m) return +m[1];
+  if (/グラス/.test(n)) return 0.5;
+  return 0;
+}
+function mk(cat, name, alias, spec){
+  const variants = typeof spec === "number" ? [{label:"", price:spec, go:0}]
+    : spec.split(",").map(p => { const [label, price] = p.split(":"); return {label, price:+price, go:goOf(label)}; });
+  return {id:uid(), cat, name, alias, variants};
+}
+function sampleMenu(){
+  return [
+    mk("日本酒","獺祭 純米大吟醸45",["獺祭","だっさい"],"一合:1400,半合:750,グラス:800"),
+    mk("日本酒","黒龍 いっちょらい",["黒龍","こくりゅう","黒竜"],"一合:1100,半合:600,グラス:650"),
+    mk("日本酒","新政 No.6",["新政","あらまさ","ナンバーシックス"],"一合:1500,半合:800,グラス:850"),
+    mk("日本酒","十四代 本丸",["十四代","じゅうよんだい"],"一合:1800,半合:950,グラス:1000"),
+    mk("日本酒","而今 特別純米",["而今","じこん","自今"],"一合:1300,半合:700,グラス:750"),
+    mk("日本酒","飛露喜 特別純米",["飛露喜","ひろき"],"一合:1200,半合:650,グラス:700"),
+    mk("日本酒","利き酒 飲み比べ3種",["飲み比べ","のみくらべ","利き酒","ききざけ"],1500),
+    mk("ドリンク","生ビール",["生","なま","ビール","生中","なまちゅう"],600),
+    mk("ドリンク","ハイボール",["ハイボ"],500),
+    mk("ドリンク","ウーロン茶",["烏龍茶","ウーロン"],300),
+    mk("料理","お通し",["おとおし","突き出し"],500),
+    mk("料理","だし巻き卵",["だし巻き","出汁巻き","だし巻き玉子","だしまき"],650),
+    mk("料理","刺身盛り合わせ",["刺し盛り","刺盛","さしもり","刺身"],1500),
+    mk("料理","枝豆",["えだまめ"],400),
+    mk("料理","唐揚げ",["からあげ","から揚げ"],700),
+    mk("料理","冷奴",["ひややっこ","冷ややっこ"],400),
+    mk("料理","焼き鳥盛り",["焼き鳥","やきとり","焼鳥"],900),
+    mk("料理","〆の茶漬け",["茶漬け","お茶漬け","ちゃづけ"],500)
+  ];
+}
+function seed(){
+  return { v:1, sampleMenu:true, menu:sampleMenu(),
+    tables:["1","2","3","4","5","6","カウンター1","カウンター2","カウンター3","カウンター4"],
+    settings:{cutoff:5, autoOtoshi:true, otoshiName:"お通し", idleMin:40, autoConfirm:true, confirmSec:4, speak:true},
+    open:{}, sales:[], customers:[] };
+}
+function load(){ try { const s = localStorage.getItem(KEY); return s ? JSON.parse(s) : null; } catch(e){ storageOK = false; return null; } }
+let D = load() || seed();
+D.settings = Object.assign(seed().settings, D.settings || {});
+let saveTimer = null;
+function saveNow(){ try { localStorage.setItem(KEY, JSON.stringify(D)); storageOK = true; } catch(e){ storageOK = false; } }
+function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 120); }
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveNow(); });
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(e){}
+
+/* ---------- business date ---------- */
+function bizDate(ts){
+  const d = new Date(ts - (D.settings.cutoff || 0) * 3600e3);
+  return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+}
+function dateLabel(ds){ const [y,m,d] = ds.split("-").map(Number); const w = "日月火水木金土"[new Date(y, m-1, d).getDay()]; return `${m}月${d}日（${w}）`; }
+function shiftDate(ds, n){ const [y,m,d] = ds.split("-").map(Number); const t = new Date(y, m-1, d + n, 12); return t.getFullYear() + "-" + pad2(t.getMonth()+1) + "-" + pad2(t.getDate()); }
+
+let IDX = [];
+function buildIndex(){
+  IDX = [];
+  for (const it of D.menu) for (const t of [it.name, ...(it.alias || [])]) { const n = norm(t); if (n) IDX.push({n, it}); }
+  IDX.sort((a, b) => b.n.length - a.n.length);
+}
+function parseTail(tail, it){
+  let variant = null, qty = null;
+  const vs = (it.variants || []).map(v => ({v, n:norm(v.label)})).filter(x => x.n).sort((a, b) => b.n.length - a.n.length);
+  for (const x of vs) if (tail.includes(x.n)) { variant = x.v; tail = tail.replace(x.n, ""); break; }
+  if (!variant) {
+    const g = tail.match(/(\d+(?:\.\d+)?)合/);
+    if (g) { const one = it.variants.find(v => v.go === 1); if (one) { variant = one; qty = Math.round(+g[1]); tail = tail.replace(g[0], ""); } }
+  }
+  if (qty == null) { const q = tail.match(/(\d+)/); if (q) qty = +q[1]; }
+  return {vi: it.variants.indexOf(variant || it.variants[0]), qty: Math.max(1, Math.min(99, qty || 1))};
+}
+function bigrams(s){ const r = []; for (let i = 0; i < s.length - 1; i++) r.push(s.slice(i, i + 2)); return r.length ? r : [s]; }
+function dice(a, b){ const A = bigrams(a), B = bigrams(b).slice(); let hit = 0; for (const x of A) { const j = B.indexOf(x); if (j >= 0) { hit++; B.splice(j, 1); } } return 2 * hit / (A.length + bigrams(b).length); }
+function suggest(s){
+  const best = new Map();
+  for (const {n, it} of IDX) {
+    let sc = 0;
+    for (let L = Math.max(1, n.length - 1); L <= n.length + 1; L++)
+      for (let i = 0; i + L <= s.length; i++) sc = Math.max(sc, dice(s.slice(i, i + L), n));
+    if (sc > (best.get(it) || 0)) best.set(it, sc);
+  }
+  return [...best.entries()].filter(e => e[1] >= 0.34).sort((a, b) => b[1] - a[1]).slice(0, 4).map(e => e[0]);
+}
+function parseUtter(raw, defTable){
+  let s = norm(raw);
+  const r = {raw, table:null, lines:[], guests:null, cmd:null, sugg:[]};
+  const named = D.tables.map(t => ({t, n:norm(t)})).filter(x => !/^\d+$/.test(x.n) && x.n.length >= 2).sort((a, b) => b.n.length - a.n.length);
+  for (const {t, n} of named) if (s.includes(n)) { r.table = t; s = s.replace(n, ""); break; }
+  if (!r.table) {
+    const m = s.match(/(\d+)(?:番テーブル|番卓|番席|番|卓|テーブル)/) || s.match(/(?:テーブル|卓)(\d+)/);
+    if (m) { const t = D.tables.find(t => norm(t) === m[1]); if (t) { r.table = t; s = s.replace(m[0], ""); } }
+  }
+  if (/会計|カイケイ|オアイソ|チェック/.test(s)) r.cmd = "checkout";
+  else if (/取リ?消|トリケシ|キャンセル|ヤッパリナシ/.test(s)) r.cmd = "undo";
+  const g = s.match(/(\d+)(?:名|人|メイ|ニン)(?!前|分|マエ|ブン)/);
+  if (g) { r.guests = +g[1]; s = s.replace(g[0], ""); }
+  const hits = [];
+  for (let i = 0; i < s.length;) {
+    const f = IDX.find(x => s.startsWith(x.n, i));
+    if (f) { hits.push({it:f.it, start:i, end:i + f.n.length}); i += f.n.length; } else i++;
+  }
+  hits.forEach((h, k) => {
+    const tail = s.slice(h.end, k + 1 < hits.length ? hits[k + 1].start : s.length);
+    const {vi, qty} = parseTail(tail, h.it);
+    const same = r.lines.find(l => l.it === h.it && l.vi === vi);
+    if (same) same.qty += qty; else r.lines.push({it:h.it, vi, qty});
+  });
+  if (!r.table) r.table = defTable || null;
+  if (!r.lines.length && !r.cmd && r.guests == null && s.length) r.sugg = suggest(s);
+  return r;
+}
+
+/* ---------- ticket ops ---------- */
+function ticketTotal(t){ return t.lines.reduce((a, l) => a + l.price * l.qty, 0); }
+function openTicket(table, guests){
+  if (!D.open[table]) { D.open[table] = {id:uid(), table, openedAt:Date.now(), lastAt:Date.now(), guests:0, customerId:null, lines:[]}; }
+  const t = D.open[table];
+  if (guests) setGuests(t, guests);
+  save(); return t;
+}
+function otoshiItem(){ return D.menu.find(m => m.name === D.settings.otoshiName); }
+function hasOtoshi(t){ const o = otoshiItem(); return !o || t.lines.some(l => l.itemId === o.id); }
+function setGuests(t, n){
+  const before = t.guests; t.guests = Math.max(0, n);
+  const o = otoshiItem();
+  if (D.settings.autoOtoshi && o && t.guests > 0 && before === 0 && !hasOtoshi(t)) addLine(t, o, 0, t.guests, true);
+}
+function addLine(t, it, vi, qty, silent){
+  const v = it.variants[vi] || it.variants[0];
+  let l = t.lines.find(x => x.itemId === it.id && x.variant === v.label);
+  if (l) l.qty += qty;
+  else { l = {id:uid(), itemId:it.id, name:it.name, cat:it.cat, variant:v.label, price:v.price, go:v.go || 0, qty, at:Date.now()}; t.lines.push(l); }
+  if (!silent) t.lastAt = Date.now();
+  lastAdded = l.id; return l;
+}
+let lastAdded = null, undoStack = [];
+
+/* ---------- views ---------- */
+let view = "tables", curTable = null, curCat = null, salesDate = bizDate(Date.now()), custQuery = "";
+function go(v, table){ view = v; if (table !== undefined) curTable = table; render(); window.scrollTo(0, 0); }
+
+function renderToday(){
+  const today = bizDate(Date.now());
+  const closed = D.sales.filter(s => s.biz === today).reduce((a, s) => a + s.total, 0);
+  const open = Object.values(D.open).reduce((a, t) => a + ticketTotal(t), 0);
+  $("#todaySum").innerHTML = `本日の売上<b>${yen(closed)}</b>${open ? `営業中の卓 ${yen(open)}` : ""}`;
+}
+function banners(){
+  let h = "";
+  if (!storageOK) h += `<div class="banner">この画面ではデータを端末に保存できません。閉じると消えるので、本番はホーム画面に追加したアプリで使ってください。</div>`;
+  if (D.sampleMenu && view === "tables") h += `<div class="banner"><span>いま入っているメニューはサンプルです。お店のメニューに置き換えてから使ってください。</span><button class="btn sm" data-act="goMenu">メニューを編集</button></div>`;
+  return h;
+}
+function tableChips(t){
+  const c = [];
+  const idle = Math.floor((Date.now() - t.lastAt) / 60000);
+  if (!t.guests) c.push(`<span class="chip warn">人数未入力</span>`);
+  if (!hasOtoshi(t)) c.push(`<span class="chip warn">${esc(D.settings.otoshiName)}なし</span>`);
+  if (idle >= D.settings.idleMin) c.push(`<span class="chip warn">${idle}分注文なし</span>`);
+  if (t.customerId) { const cu = D.customers.find(x => x.id === t.customerId); if (cu) c.push(`<span class="chip sugi">${esc(cu.name)}さん</span>`); }
+  return c.join("");
+}
+function viewTables(){
+  const cards = D.tables.map(name => {
+    const t = D.open[name];
+    if (!t) return `<button class="tcard empty" data-act="openTable" data-t="${esc(name)}"><span class="tn">${esc(name)}</span><span class="small">空席・タップで案内</span></button>`;
+    return `<button class="tcard busy" data-act="showTicket" data-t="${esc(name)}"><span class="tn">${esc(name)}</span>
+      <span class="amt num">${yen(ticketTotal(t))}</span><span class="small muted num">${t.guests || "–"}名・${hm(t.openedAt)}〜</span><span class="chips">${tableChips(t)}</span></button>`;
+  }).join("");
+  return `${banners()}<div class="row" style="margin-bottom:12px"><h2 class="grow">卓</h2><span class="small muted">マイクで「3番、獺祭一合2つ」</span></div><div class="tables">${cards}</div>`;
+}
+function custHint(cu){
+  const st = custStats(cu.id);
+  if (!st.visits) return `${esc(cu.name)}さん・初来店`;
+  const fav = st.top.slice(0, 2).map(x => esc(x[0])).join("、");
+  return `<b>${esc(cu.name)}さん</b>　来店${st.visits}回・前回 ${dateLabel(st.last)} ${yen(st.lastTotal)}・平均 ${yen(st.avg)}${fav ? `<br><span class="muted">よく頼む：${fav}</span>` : ""}${st.unpaid ? `<br><span style="color:var(--warn)">ツケ残り ${yen(st.unpaid)}</span>` : ""}`;
+}
+function viewTicket(){
+  const t = D.open[curTable];
+  if (!t) { view = "tables"; return viewTables(); }
+  const cu = t.customerId && D.customers.find(x => x.id === t.customerId);
+  const cats = [...new Set(D.menu.map(m => m.cat))];
+  if (!curCat || !cats.includes(curCat)) curCat = cats[0];
+  const lines = t.lines.length ? t.lines.map(l => `<div class="line${l.id === lastAdded ? " new" : ""}">
+      <div class="nm">${esc(l.name)}${l.variant ? `<small>${esc(l.variant)}</small>` : ""}<div class="small muted num">${yen(l.price)}・${hm(l.at)}</div></div>
+      <div class="stepper"><button data-act="lineQty" data-id="${l.id}" data-d="-1" aria-label="減らす">−</button><span class="num">${l.qty}</span><button data-act="lineQty" data-id="${l.id}" data-d="1" aria-label="増やす">＋</button></div>
+      <div class="sub num">${yen(l.price * l.qty)}</div></div>`).join("")
+    : `<div class="empty-note">まだ注文がありません。マイクを押して話すか、下のメニューをタップしてください。</div>`;
+  lastAdded = null;
+  const quick = D.menu.filter(m => m.cat === curCat).map(m => `<button data-act="quickAdd" data-id="${m.id}">${esc(m.name)}<small class="num">${m.variants.map(v => (v.label ? esc(v.label) + " " : "") + yen(v.price)).join("／")}</small></button>`).join("");
+  return `<div class="tk-head"><button class="btn ghost sm" data-act="goTables">← 卓一覧</button></div>
+    <div class="tk-head"><span class="tn">${esc(t.table)}</span><span class="muted small num">${hm(t.openedAt)}から</span>
+      <span class="grow"></span><span class="small muted">人数</span>
+      <div class="stepper"><button data-act="guests" data-d="-1" aria-label="人数を減らす">−</button><span class="num">${t.guests || "–"}名</span><button data-act="guests" data-d="1" aria-label="人数を増やす">＋</button></div></div>
+    <div class="chips" style="margin-bottom:10px">${tableChips(t)}</div>
+    <div class="custbox"><div class="grow">${cu ? custHint(cu) : `<span class="muted">お客さんを登録すると、次回から前回の支払いや好みが見られます。</span>`}</div>
+      <button class="btn sm" data-act="pickCust">${cu ? "変更" : "お客さんを選ぶ"}</button></div>
+    <div class="lines">${lines}</div>
+    <div class="tk-total"><span class="muted small">合計（税込）</span><span class="sum num">${yen(ticketTotal(t))}</span><span class="grow"></span>
+      <button class="btn danger sm" data-act="discard">伝票を消す</button>
+      <button class="btn pri" data-act="checkout" ${t.lines.length ? "" : "disabled"}>お会計へ</button></div>
+    <h3>タップで追加</h3>
+    <div class="cats">${cats.map(c => `<button data-act="cat" data-c="${esc(c)}" aria-pressed="${c === curCat}">${esc(c)}</button>`).join("")}</div>
+    <div class="quick">${quick}</div>`;
+}
+
+/* ---------- reports ---------- */
+function dayStats(ds){
+  const list = D.sales.filter(s => s.biz === ds).sort((a, b) => a.closedAt - b.closedAt);
+  const total = list.reduce((a, s) => a + s.total, 0);
+  const guests = list.reduce((a, s) => a + (s.guests || 0), 0);
+  const by = {}; list.forEach(s => by[s.method] = (by[s.method] || 0) + s.total);
+  const items = {}, sake = {};
+  list.forEach(s => s.lines.forEach(l => {
+    const k = l.name + (l.variant ? "（" + l.variant + "）" : "");
+    items[k] = items[k] || {qty:0, amt:0}; items[k].qty += l.qty; items[k].amt += l.qty * l.price;
+    if (l.cat === "日本酒") { sake[l.name] = sake[l.name] || {cups:0, go:0, amt:0, vars:{}}; const z = sake[l.name];
+      z.cups += l.qty; z.go += (l.go || 0) * l.qty; z.amt += l.qty * l.price; if (l.variant) z.vars[l.variant] = (z.vars[l.variant] || 0) + l.qty; }
+  }));
+  return {list, total, guests, groups:list.length, by, items, sake};
+}
+function viewSales(){
+  const st = dayStats(salesDate);
+  const days = []; for (let i = 13; i >= 0; i--) days.push(shiftDate(salesDate, -i));
+  const tots = days.map(d => D.sales.filter(s => s.biz === d).reduce((a, s) => a + s.total, 0));
+  const mx = Math.max(1, ...tots);
+  const bars = days.map((d, i) => `<button class="b${d === salesDate ? " sel" : ""}" data-act="salesDate" data-d="${d}" style="border:0;background:transparent;padding:0" title="${dateLabel(d)} ${yen(tots[i])}"><i style="height:${tots[i] / mx * 80}%"></i><small class="num">${+d.slice(8)}</small></button>`).join("");
+  const sakeRows = Object.entries(st.sake).sort((a, b) => b[1].cups - a[1].cups).map(([n, z]) =>
+    `<tr><td>${esc(n)}</td><td class="r num">${z.cups}</td><td class="small muted">${Object.entries(z.vars).map(([k, v]) => esc(k) + "×" + v).join("、")}</td><td class="r num">${z.go ? z.go.toFixed(1) + "合" : "–"}</td><td class="r num">${z.go ? "約" + (z.go / 10).toFixed(2) + "本" : "–"}</td><td class="r num">${yen(z.amt)}</td></tr>`).join("");
+  const itemRows = Object.entries(st.items).sort((a, b) => b[1].amt - a[1].amt).map(([n, z]) => `<tr><td>${esc(n)}</td><td class="r num">${z.qty}</td><td class="r num">${yen(z.amt)}</td></tr>`).join("");
+  const rec = st.list.map(s => { const cu = s.customerId && D.customers.find(c => c.id === s.customerId);
+    return `<tr class="click" data-act="showSale" data-id="${s.id}"><td class="num">${hm(s.closedAt)}</td><td>${esc(s.table)}</td><td>${cu ? esc(cu.name) : "–"}</td><td class="r num">${s.guests || "–"}</td><td>${esc(s.method)}${s.method === "ツケ" && !s.paidAt ? '<span class="chip warn">未収</span>' : ""}</td><td class="r num">${yen(s.total)}</td></tr>`; }).join("");
+  const methods = ["現金","カード","QR決済","ツケ"].map(m => `<div class="kpi"><span>${m}</span><b class="num">${yen(st.by[m] || 0)}</b></div>`).join("");
+  return `<div class="row" style="margin-bottom:12px"><h2 class="grow">売上</h2>
+      <button class="btn sm" data-act="salesShift" data-d="-1" aria-label="前の日">‹</button><span class="num" style="font-weight:700">${dateLabel(salesDate)}</span><button class="btn sm" data-act="salesShift" data-d="1" aria-label="次の日">›</button></div>
+    <div class="kpis"><div class="kpi main"><span>売上（税込）</span><b class="num">${yen(st.total)}</b></div>
+      <div class="kpi"><span>組数</span><b class="num">${st.groups}組</b></div><div class="kpi"><span>客数</span><b class="num">${st.guests}名</b></div>
+      <div class="kpi"><span>客単価</span><b class="num">${st.guests ? yen(st.total / st.guests) : "–"}</b></div></div>
+    <h3>直近14日</h3><div class="bars">${bars}</div>
+    <h3>支払い方法</h3><div class="kpis">${methods}</div>
+    <h3>日本酒（銘柄別）</h3>${sakeRows ? `<div class="tbl-wrap"><table><thead><tr><th>銘柄</th><th class="r">杯数</th><th>内訳</th><th class="r">合数</th><th class="r">一升瓶換算</th><th class="r">売上</th></tr></thead><tbody>${sakeRows}</tbody></table></div>` : `<div class="empty-note">この日の日本酒の注文はまだありません。</div>`}
+    <h3>品目別</h3>${itemRows ? `<div class="tbl-wrap"><table><thead><tr><th>品目</th><th class="r">数</th><th class="r">売上</th></tr></thead><tbody>${itemRows}</tbody></table></div>` : `<div class="empty-note">この日のお会計はまだありません。</div>`}
+    <h3>お会計の記録</h3>${rec ? `<div class="tbl-wrap"><table><thead><tr><th>時刻</th><th>卓</th><th>お客さん</th><th class="r">人数</th><th>支払い</th><th class="r">金額</th></tr></thead><tbody>${rec}</tbody></table></div>` : `<div class="empty-note">記録はありません。</div>`}
+    <div class="row" style="margin-top:16px"><button class="btn" data-act="csvDay">この日をCSVで保存</button><button class="btn" data-act="csvAll">全期間をCSVで保存</button></div>
+    <p class="small muted">深夜${D.settings.cutoff}時までのお会計は前日の売上に入ります（設定で変更できます）。</p>`;
+}
+function custStats(id){
+  const list = D.sales.filter(s => s.customerId === id).sort((a, b) => b.closedAt - a.closedAt);
+  const total = list.reduce((a, s) => a + s.total, 0);
+  const cnt = {}; list.forEach(s => s.lines.forEach(l => { if (l.name !== D.settings.otoshiName) cnt[l.name] = (cnt[l.name] || 0) + l.qty; }));
+  const unpaid = list.filter(s => s.method === "ツケ" && !s.paidAt).reduce((a, s) => a + s.total, 0);
+  return {list, visits:list.length, total, avg:list.length ? total / list.length : 0, last:list[0] && list[0].biz, lastTotal:list[0] && list[0].total,
+    top:Object.entries(cnt).sort((a, b) => b[1] - a[1]), unpaid};
+}
+function viewCustomers(){
+  const q = norm(custQuery);
+  const rows = D.customers.map(c => ({c, st:custStats(c.id)}))
+    .filter(x => !q || norm(x.c.name + (x.c.kana || "") + (x.c.note || "")).includes(q))
+    .sort((a, b) => (b.st.list[0] ? b.st.list[0].closedAt : b.c.createdAt) - (a.st.list[0] ? a.st.list[0].closedAt : a.c.createdAt));
+  const list = rows.map(({c, st}) => `<button data-act="showCust" data-id="${c.id}"><div class="grow"><b>${esc(c.name)}</b>${st.unpaid ? ` <span class="chip warn">ツケ ${yen(st.unpaid)}</span>` : ""}
+      <div class="small muted">${st.visits ? `来店${st.visits}回・前回 ${dateLabel(st.last)}・平均 ${yen(st.avg)}` : "まだ来店記録なし"}${c.note ? "・" + esc(c.note) : ""}</div></div>
+      <div class="num" style="font-weight:700">${yen(st.total)}</div></button>`).join("");
+  return `<div class="row" style="margin-bottom:12px"><h2 class="grow">お客さん</h2><button class="btn pri sm" data-act="newCust">＋ 登録</button></div>
+    <div class="field" style="margin-top:0"><input id="custSearch" type="search" placeholder="名前やメモで探す" value="${esc(custQuery)}"></div>
+    <div style="margin-top:12px">${list ? `<div class="list">${list}</div>` : `<div class="empty-note">${D.customers.length ? "見つかりません。" : "まだ登録されたお客さんはいません。伝票の「お客さんを選ぶ」からも登録できます。"}</div>`}</div>`;
+}
+function viewMenu(){
+  const cats = [...new Set(D.menu.map(m => m.cat))];
+  const groups = cats.map(c => `<h3>${esc(c)}</h3><div class="list">${D.menu.filter(m => m.cat === c).map(m =>
+      `<button data-act="editItem" data-id="${m.id}"><div class="grow"><b>${esc(m.name)}</b><div class="small muted">${(m.alias || []).length ? "呼び方：" + m.alias.map(esc).join("、") : "呼び方の登録なし"}</div></div>
+      <div class="small num" style="text-align:right">${m.variants.map(v => (v.label ? esc(v.label) + " " : "") + yen(v.price)).join("<br>")}</div></button>`).join("")}</div>`).join("");
+  const s = D.settings;
+  return `<div class="row" style="margin-bottom:4px"><h2 class="grow">メニュー</h2><button class="btn pri sm" data-act="editItem" data-id="">＋ 品目を追加</button></div>
+    <p class="small muted" style="margin:0">「呼び方」に読みがなや略称を入れておくと、音声で聞き取りやすくなります。</p>
+    ${groups || `<div class="empty-note">メニューがありません。</div>`}
+    <h2 style="margin-top:28px">設定</h2>
+    <div class="field"><label for="setTables">卓・席の名前（カンマ区切り）</label><input id="setTables" value="${esc(D.tables.join(","))}"></div>
+    <div class="field"><label for="setOtoshi">お通しとして扱う品目</label><select id="setOtoshi"><option value="">なし</option>${D.menu.map(m => `<option ${m.name === s.otoshiName ? "selected" : ""}>${esc(m.name)}</option>`).join("")}</select></div>
+    <div class="field"><label><input type="checkbox" id="setAutoOtoshi" ${s.autoOtoshi ? "checked" : ""}> 人数を入れたらお通しを人数分自動で追加</label></div>
+    <div class="field"><label for="setIdle">注文がない卓をお知らせする時間（分）</label><input id="setIdle" type="number" min="5" value="${s.idleMin}"></div>
+    <div class="field"><label for="setCutoff">営業日の区切り（この時刻までは前日扱い）</label><input id="setCutoff" type="number" min="0" max="12" value="${s.cutoff}"></div>
+    <div class="field"><label><input type="checkbox" id="setAuto" ${s.autoConfirm ? "checked" : ""}> 音声の注文を確認なしで自動追加（取り消し可能）</label></div>
+    <div class="field"><label for="setSec">自動追加までの秒数</label><input id="setSec" type="number" min="1" max="15" value="${s.confirmSec}"></div>
+    <div class="field"><label><input type="checkbox" id="setSpeak" ${s.speak ? "checked" : ""}> 追加した内容を声で読み上げる</label></div>
+    <div class="row" style="margin-top:14px"><button class="btn pri" data-act="saveSettings">設定を保存</button></div>
+    <h3>データ</h3>
+    <p class="small muted" style="margin:0 0 8px">データはこの端末の中だけに保存されています。機種変更や念のための控えに、ときどきバックアップを保存してください。</p>
+    <div class="row"><button class="btn" data-act="backup">バックアップを保存</button><label class="btn" for="restoreFile" style="display:inline-flex;align-items:center">バックアップから戻す</label><input type="file" id="restoreFile" accept="application/json,.json" hidden>
+      <button class="btn danger" data-act="wipe">すべて消す</button></div>`;
+}
+function render(){
+  renderToday();
+  const map = {tables:viewTables, ticket:viewTicket, sales:viewSales, customers:viewCustomers, menu:viewMenu};
+  $("#view").innerHTML = map[view]();
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-current", (b.dataset.tab === view || (view === "ticket" && b.dataset.tab === "tables")) ? "page" : "false"));
+}
+
+/* ---------- sheet & toast ---------- */
+let sheetClose = null;
+function openSheet(html, mount, onClose){
+  closeSheet();
+  const root = $("#sheetRoot");
+  root.innerHTML = `<div class="scrim" data-scrim><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`;
+  sheetClose = onClose || null;
+  if (mount) mount($(".sheet", root));
+}
+function closeSheet(){ const f = sheetClose; sheetClose = null; $("#sheetRoot").innerHTML = ""; if (f) f(); }
+let toastTimer;
+function toast(msg, undoFn){
+  clearTimeout(toastTimer);
+  $("#toastRoot").innerHTML = `<div class="toast" role="status"><span>${esc(msg)}</span>${undoFn ? `<button id="toastUndo">取り消す</button>` : ""}</div>`;
+  if (undoFn) $("#toastUndo").onclick = () => { undoFn(); $("#toastRoot").innerHTML = ""; };
+  toastTimer = setTimeout(() => $("#toastRoot").innerHTML = "", undoFn ? 6000 : 2600);
+}
+function confirmSheet(title, body, okLabel, ok){
+  openSheet(`<h2>${esc(title)}</h2><p>${body}</p><div class="acts"><button class="btn" data-x>やめる</button><button class="btn pri" data-ok style="background:var(--danger);border-color:var(--danger)">${esc(okLabel)}</button></div>`,
+    el => { $("[data-x]", el).onclick = closeSheet; $("[data-ok]", el).onclick = () => { closeSheet(); ok(); }; });
+}
+function say(text){
+  if (!D.settings.speak || !window.speechSynthesis) return Promise.resolve();
+  return new Promise(res => {
+    try { const u = new SpeechSynthesisUtterance(text); u.lang = "ja-JP"; u.rate = 1.15; u.onend = res; u.onerror = res; speechSynthesis.cancel(); speechSynthesis.speak(u); setTimeout(res, 6000); }
+    catch(e){ res(); }
+  });
+}
+
+/* ---------- guests / open table ---------- */
+function guestsSheet(table, then){
+  const btns = [1,2,3,4,5,6,7,8].map(n => `<button data-n="${n}">${n}</button>`).join("");
+  openSheet(`<h2>${esc(table)}　何名さまですか？</h2><div class="pad">${btns}</div><div class="acts"><button class="btn" data-x>やめる</button><button class="btn" data-later>人数はあとで</button></div>`, el => {
+    el.querySelectorAll("[data-n]").forEach(b => b.onclick = () => { closeSheet(); openTicket(table, +b.dataset.n); then && then(); });
+    $("[data-x]", el).onclick = closeSheet;
+    $("[data-later]", el).onclick = () => { closeSheet(); openTicket(table, 0); then && then(); };
+  });
+}
+
+/* ---------- variant picker ---------- */
+function variantSheet(it, done){
+  openSheet(`<h2>${esc(it.name)}</h2><div class="pad" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">${it.variants.map((v, i) => `<button data-i="${i}" style="font-size:16px">${esc(v.label || "通常")}<br><small class="num">${yen(v.price)}</small></button>`).join("")}</div><div class="acts"><button class="btn" data-x>やめる</button></div>`, el => {
+    el.querySelectorAll("[data-i]").forEach(b => b.onclick = () => { closeSheet(); done(+b.dataset.i); });
+    $("[data-x]", el).onclick = closeSheet;
+  });
+}
+
+/* ---------- voice preview ---------- */
+let pending = null, cdTimer = null;
+function stopCountdown(el){ clearTimeout(cdTimer); cdTimer = null; const i = el && $(".countdown i", el); if (i) { i.style.transition = "none"; i.parentNode.hidden = true; } }
+function previewSheet(p){
+  pending = p;
+  const tables = D.tables.map(t => `<option ${t === p.table ? "selected" : ""}>${esc(t)}</option>`).join("");
+  const rows = p.lines.map((l, k) => `<div class="pv"><b class="grow">${esc(l.it.name)}</b>
+      ${l.it.variants.length > 1 ? `<select data-k="${k}" data-f="vi">${l.it.variants.map((v, i) => `<option value="${i}" ${i === l.vi ? "selected" : ""}>${esc(v.label)} ${yen(v.price)}</option>`).join("")}</select>` : `<span class="small muted num">${yen(l.it.variants[0].price)}</span>`}
+      <div class="stepper"><button data-k="${k}" data-q="-1">−</button><span class="num">${l.qty}</span><button data-k="${k}" data-q="1">＋</button></div></div>`).join("");
+  const sugg = p.sugg.length ? `<p class="small muted">メニューが聞き取れませんでした。もしかして：</p><div class="row">${p.sugg.map(it => `<button class="btn sm" data-sg="${it.id}">${esc(it.name)}</button>`).join("")}</div>` : "";
+  const nothing = !p.lines.length && !p.sugg.length && p.cmd == null && p.guests == null;
+  openSheet(`<h2>注文の確認</h2>
+    ${p.raw ? `<div class="raw">聞き取り：「${esc(p.raw)}」</div>` : ""}
+    <div class="row"><label class="small muted" for="pvTable">卓</label><select id="pvTable" class="grow" style="border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;min-height:42px"><option value="">卓を選んでください</option>${tables}</select>
+      ${p.guests != null ? `<span class="chip sugi">${p.guests}名</span>` : ""}</div>
+    ${rows}${sugg}${nothing ? `<p class="muted">メニュー名が見つかりませんでした。もう一度話すか、文字で入力してください。</p>` : ""}
+    <div class="field"><label for="pvText">文字で入力・言い直し</label><div class="row"><input id="pvText" class="grow" placeholder="例：3番 獺祭 一合 2つ 唐揚げ" style="border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-height:44px"><button class="btn sm" data-reparse>読み取る</button></div></div>
+    <div class="countdown" ${D.settings.autoConfirm && p.lines.length && p.table ? "" : "hidden"}><i></i></div>
+    <div class="acts"><button class="btn" data-x>やめる</button><button class="btn pri" data-ok>${p.lines.length ? "追加する" : (p.cmd === "checkout" ? "お会計へ" : "決定")}</button></div>`, el => {
+    const tsel = $("#pvTable", el);
+    tsel.onchange = () => { p.table = tsel.value || null; stopCountdown(el); };
+    el.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { const l = p.lines[+b.dataset.k]; l.qty = Math.max(0, l.qty + +b.dataset.q); if (!l.qty) p.lines.splice(+b.dataset.k, 1); stopCountdown(); previewSheet(p); });
+    el.querySelectorAll("select[data-f]").forEach(s => s.onchange = () => { p.lines[+s.dataset.k].vi = +s.value; stopCountdown(el); });
+    el.querySelectorAll("[data-sg]").forEach(b => b.onclick = () => { const it = D.menu.find(m => m.id === b.dataset.sg); p.lines.push({it, vi:0, qty:1}); p.sugg = []; stopCountdown(); previewSheet(p); });
+    const reparse = () => { const v = $("#pvText", el).value.trim(); if (!v) return; stopCountdown(); const q = parseUtter(v, p.table); previewSheet(q); };
+    $("[data-reparse]", el).onclick = reparse;
+    $("#pvText", el).onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); reparse(); } };
+    $("#pvText", el).onfocus = () => stopCountdown(el);
+    $("[data-x]", el).onclick = () => { stopCountdown(); pending = null; closeSheet(); };
+    $("[data-ok]", el).onclick = () => { stopCountdown(); commit(p); };
+    if (D.settings.autoConfirm && p.lines.length && p.table) {
+      const bar = $(".countdown i", el); const sec = Math.max(1, +D.settings.confirmSec || 4);
+      requestAnimationFrame(() => { bar.style.transition = `transform ${sec}s linear`; bar.style.transform = "scaleX(0)"; });
+      cdTimer = setTimeout(() => commit(p), sec * 1000);
+    }
+  }, () => { clearTimeout(cdTimer); cdTimer = null; });
+}
+function commit(p){
+  clearTimeout(cdTimer); cdTimer = null;
+  if (!p.table) { toast("卓を選んでください"); return; }
+  closeSheet(); pending = null;
+  const existed = !!D.open[p.table];
+  const t = openTicket(p.table, 0);
+  if (p.guests != null) setGuests(t, p.guests);
+  if (p.cmd === "undo" && !p.lines.length) { undoLast(); return; }
+  const added = [];
+  for (const l of p.lines) { const line = addLine(t, l.it, l.vi, l.qty); added.push({id:line.id, qty:l.qty}); }
+  if (added.length) undoStack.push({table:p.table, added, created:!existed});
+  save();
+  const desc = p.lines.map(l => { const v = l.it.variants[l.vi]; return `${shortName(l.it)}${v && v.label ? " " + v.label : ""} ${l.qty}つ`; }).join("、");
+  if (p.cmd === "checkout" && !p.lines.length) { go("ticket", p.table); checkoutSheet(); return; }
+  if (view === "ticket" || view === "tables") { if (view === "ticket") curTable = p.table; render(); }
+  if (desc) { toast(`${p.table}：${desc}を追加`, undoLast); say(`${p.table}${/^\d+$/.test(p.table) ? "番" : ""}、${desc}、追加しました`).then(resumeHF); }
+  else if (p.guests != null) { toast(`${p.table}：${p.guests}名で受付`); render(); resumeHF(); }
+  else resumeHF();
+}
+function shortName(it){ return (it.alias && it.alias[0] && it.alias[0].length < it.name.length) ? it.alias[0] : it.name; }
+function undoLast(){
+  const u = undoStack.pop(); if (!u) { toast("取り消せる注文がありません"); return; }
+  const t = D.open[u.table]; if (!t) return;
+  for (const a of u.added) { const l = t.lines.find(x => x.id === a.id); if (l) { l.qty -= a.qty; if (l.qty <= 0) t.lines.splice(t.lines.indexOf(l), 1); } }
+  if (u.created && !t.lines.length) delete D.open[u.table];
+  save(); render(); toast("直前の注文を取り消しました"); say("取り消しました").then(resumeHF);
+}
+
+/* ---------- speech recognition ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false, handsFree = false, micBlocked = false;
+function defaultTable(){ return view === "ticket" ? curTable : null; }
+function setLive(text){ const l = $("#live"); if (text == null) { l.hidden = true; return; } l.hidden = false; l.textContent = text; }
+function listenOnce(){
+  if (!SR || micBlocked) { previewSheet({raw:"", table:defaultTable(), lines:[], guests:null, cmd:null, sugg:[]}); setTimeout(() => { const i = $("#pvText"); i && i.focus(); }, 50);
+    if (!SR) toast("このブラウザは音声入力に対応していません。文字で入力できます"); return; }
+  if (listening) { try { rec.stop(); } catch(e){} return; }
+  if (cdTimer || pending) return;
+  rec = new SR(); rec.lang = "ja-JP"; rec.interimResults = true; rec.maxAlternatives = 3; rec.continuous = false;
+  let finalAlts = null;
+  rec.onstart = () => { listening = true; $("#micBtn").classList.add("on"); setLive("聞いています…"); };
+  rec.onresult = e => {
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) { finalAlts = [...r].map(a => a.transcript); } else interim += r[0].transcript;
+    }
+    if (interim) setLive("「" + interim + "」");
+  };
+  rec.onerror = e => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") { micBlocked = true; handsFree = false; syncHF();
+      toast("マイクが使えません。ブラウザの設定でマイクを許可してください。いまは文字で入力できます"); }
+    else if (e.error === "no-speech") { /* quiet */ }
+    else if (e.error !== "aborted") toast("聞き取りに失敗しました（" + e.error + "）");
+  };
+  rec.onend = () => {
+    listening = false; $("#micBtn").classList.remove("on"); setLive(null);
+    if (finalAlts && finalAlts.length) {
+      const parses = finalAlts.map(a => parseUtter(a, defaultTable()));
+      parses.sort((a, b) => (b.lines.length - a.lines.length) || ((b.table ? 1 : 0) - (a.table ? 1 : 0)));
+      handleParse(parses[0]);
+    } else resumeHF();
+  };
+  try { rec.start(); } catch(e){ listening = false; }
+}
+function handleParse(p){
+  if (p.cmd === "undo" && !p.lines.length) { undoLast(); return; }
+  if (p.cmd === "checkout" && !p.lines.length && p.table && D.open[p.table]) { go("ticket", p.table); checkoutSheet(); handsFree = false; syncHF(); return; }
+  previewSheet(p);
+}
+function resumeHF(){ if (handsFree && !listening && !pending && !$(".scrim")) setTimeout(() => { if (handsFree && !listening && !pending && !$(".scrim")) listenOnce(); }, 350); }
+function syncHF(){ $("#hfBtn").setAttribute("aria-pressed", String(handsFree)); }
+$("#micBtn").onclick = () => listenOnce();
+$("#hfBtn").onclick = () => {
+  if (!SR || micBlocked) { toast("この画面では音声入力が使えません"); return; }
+  handsFree = !handsFree; syncHF();
+  if (handsFree) { toast("ハンズフリー：話し終えるたびに聞き取ります"); if (!listening) listenOnce(); }
+  else if (listening) try { rec.abort(); } catch(e){}
+};
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $(".scrim")) { pending = null; closeSheet(); } });
+
+/* ---------- customers ---------- */
+function custPicker(t){
+  const draw = (q) => {
+    const nq = norm(q);
+    const list = D.customers.filter(c => !nq || norm(c.name + (c.kana || "") + (c.note || "")).includes(nq)).slice(0, 30);
+    return list.map(c => { const st = custStats(c.id); return `<button data-c="${c.id}"><div class="grow"><b>${esc(c.name)}</b><div class="small muted">${st.visits ? `来店${st.visits}回・前回 ${dateLabel(st.last)} ${yen(st.lastTotal)}` : "来店記録なし"}</div></div></button>`; }).join("");
+  };
+  openSheet(`<h2>お客さんを選ぶ</h2><div class="field" style="margin-top:0"><input id="cpQ" type="search" placeholder="名前で探す・新しく登録"></div>
+    <div class="list" id="cpList" style="margin-top:10px">${draw("")}</div>
+    <div class="acts">${t.customerId ? `<button class="btn" data-clear>外す</button>` : ""}<button class="btn" data-x>閉じる</button><button class="btn pri" data-new>この名前で新規登録</button></div>`, el => {
+    const q = $("#cpQ", el), L = $("#cpList", el);
+    const bind = () => L.querySelectorAll("[data-c]").forEach(b => b.onclick = () => { t.customerId = b.dataset.c; save(); closeSheet(); render(); });
+    q.oninput = () => { L.innerHTML = draw(q.value); bind(); };
+    bind();
+    $("[data-x]", el).onclick = closeSheet;
+    const cl = $("[data-clear]", el); if (cl) cl.onclick = () => { t.customerId = null; save(); closeSheet(); render(); };
+    $("[data-new]", el).onclick = () => { const n = q.value.trim(); if (!n) { q.focus(); toast("名前を入れてください"); return; }
+      const c = {id:uid(), name:n, kana:"", note:"", createdAt:Date.now()}; D.customers.push(c); t.customerId = c.id; save(); closeSheet(); render(); toast(n + "さんを登録しました"); };
+  });
+}
+function custEditSheet(c){
+  const isNew = !c; c = c || {id:uid(), name:"", kana:"", note:"", createdAt:Date.now()};
+  openSheet(`<h2>${isNew ? "お客さんを登録" : "お客さんを編集"}</h2>
+    <div class="field"><label for="ceN">名前・呼び名</label><input id="ceN" value="${esc(c.name)}"></div>
+    <div class="field"><label for="ceK">よみがな</label><input id="ceK" value="${esc(c.kana)}"></div>
+    <div class="field"><label for="ceM">メモ（好み・苦手・連絡先など）</label><textarea id="ceM" rows="3">${esc(c.note)}</textarea></div>
+    <div class="acts">${isNew ? "" : `<button class="btn danger" data-del>削除</button>`}<button class="btn" data-x>やめる</button><button class="btn pri" data-ok>保存</button></div>`, el => {
+    $("[data-x]", el).onclick = closeSheet;
+    $("[data-ok]", el).onclick = () => { const n = $("#ceN", el).value.trim(); if (!n) { toast("名前を入れてください"); return; }
+      c.name = n; c.kana = $("#ceK", el).value.trim(); c.note = $("#ceM", el).value.trim(); if (isNew) D.customers.push(c); save(); closeSheet(); render(); };
+    const d = $("[data-del]", el); if (d) d.onclick = () => confirmSheet("削除しますか？", esc(c.name) + "さんの登録を消します。お会計の記録は残ります。", "削除する", () => {
+      D.customers = D.customers.filter(x => x.id !== c.id); D.sales.forEach(s => { if (s.customerId === c.id) s.customerId = null; });
+      Object.values(D.open).forEach(t => { if (t.customerId === c.id) t.customerId = null; }); save(); render(); });
+  });
+}
+function custDetail(c){
+  const st = custStats(c.id);
+  const visits = st.list.map(s => `<tr class="click" data-sale="${s.id}"><td>${dateLabel(s.biz)}</td><td class="r num">${s.guests || "–"}名</td><td>${esc(s.method)}${s.method === "ツケ" ? (s.paidAt ? '<span class="chip sugi">入金済</span>' : '<span class="chip warn">未収</span>') : ""}</td><td class="r num">${yen(s.total)}</td></tr>`).join("");
+  openSheet(`<h2>${esc(c.name)}さん</h2>${c.note ? `<p class="raw">${esc(c.note)}</p>` : ""}
+    <div class="kpis"><div class="kpi"><span>来店</span><b class="num">${st.visits}回</b></div><div class="kpi"><span>合計</span><b class="num">${yen(st.total)}</b></div><div class="kpi"><span>平均</span><b class="num">${yen(st.avg)}</b></div>${st.unpaid ? `<div class="kpi"><span>ツケ残り</span><b class="num" style="color:var(--warn)">${yen(st.unpaid)}</b></div>` : ""}</div>
+    ${st.top.length ? `<h3>よく頼むもの</h3><p style="margin:0">${st.top.slice(0, 6).map(([n, q]) => esc(n) + `<span class="muted small">×${q}</span>`).join("、")}</p>` : ""}
+    <h3>来店の記録</h3>${visits ? `<div class="tbl-wrap"><table><tbody>${visits}</tbody></table></div>` : `<div class="empty-note">まだ記録はありません。</div>`}
+    <div class="acts">${st.unpaid ? `<button class="btn sugi" data-pay>ツケを入金済みにする</button>` : ""}<button class="btn" data-edit>編集</button><button class="btn pri" data-x>閉じる</button></div>`, el => {
+    $("[data-x]", el).onclick = closeSheet;
+    $("[data-edit]", el).onclick = () => custEditSheet(c);
+    const p = $("[data-pay]", el); if (p) p.onclick = () => { st.list.forEach(s => { if (s.method === "ツケ" && !s.paidAt) s.paidAt = Date.now(); }); save(); custDetail(c); render(); toast("入金済みにしました"); };
+    el.querySelectorAll("[data-sale]").forEach(r => r.onclick = () => saleSheet(D.sales.find(s => s.id === r.dataset.sale)));
+  });
+}
+
+/* ---------- checkout ---------- */
+function checkoutSheet(){
+  const t = D.open[curTable]; if (!t) return;
+  const sub = ticketTotal(t);
+  let disc = 0, method = "現金", guests = t.guests || 1, recv = "";
+  const draw = () => {
+    const total = Math.max(0, sub - disc);
+    const per = Math.ceil(total / Math.max(1, guests));
+    const per100 = Math.ceil(total / Math.max(1, guests) / 100) * 100;
+    const change = recv !== "" ? +recv - total : null;
+    return `<h2>お会計　${esc(t.table)}</h2>
+      <div class="bill"><span class="muted">小計（${t.lines.reduce((a, l) => a + l.qty, 0)}点）</span><span class="num">${yen(sub)}</span>
+      ${disc ? `<span class="muted">値引き</span><span class="num">−${yen(disc)}</span>` : ""}
+      <span style="align-self:end;font-weight:700">合計（税込）</span><span class="big num">${yen(total)}</span></div>
+      <div class="field"><label for="coDisc">値引き（円）</label><input id="coDisc" type="number" inputmode="numeric" min="0" value="${disc || ""}" placeholder="0"></div>
+      <div class="field"><label>割り勘</label><div class="row"><div class="stepper"><button data-g="-1">−</button><span class="num">${guests}名</span><button data-g="1">＋</button></div>
+        <span class="num">1人 ${yen(per)}</span><span class="muted small num">（100円単位なら ${yen(per100)}、${guests}名で ${yen(per100 * guests)}）</span></div></div>
+      <div class="field"><label>支払い方法</label><div class="seg">${["現金","カード","QR決済","ツケ"].map(m => `<button data-m="${m}" aria-pressed="${m === method}">${m}</button>`).join("")}</div></div>
+      ${method === "ツケ" && !t.customerId ? `<p class="small" style="color:var(--warn)">ツケにするときは、先にお客さんを選んでください。</p>` : ""}
+      ${method === "現金" ? `<div class="field"><label for="coRecv">お預かり（円）</label><input id="coRecv" type="number" inputmode="numeric" value="${recv}" placeholder="${total}">
+        ${change != null ? `<span class="num" style="font-weight:700;font-size:18px;color:${change < 0 ? "var(--danger)" : "var(--ok)"}">${change < 0 ? "不足 " + yen(-change) : "おつり " + yen(change)}</span>` : ""}</div>` : ""}
+      <div class="acts"><button class="btn" data-x>戻る</button><button class="btn pri" data-ok ${method === "ツケ" && !t.customerId ? "disabled" : ""}>お会計を確定</button></div>`;
+  };
+  const mount = el => {
+    $("[data-x]", el).onclick = closeSheet;
+    $("#coDisc", el).onchange = e => { disc = Math.max(0, +e.target.value || 0); redraw(); };
+    el.querySelectorAll("[data-g]").forEach(b => b.onclick = () => { guests = Math.max(1, guests + +b.dataset.g); redraw(); });
+    el.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { method = b.dataset.m; redraw(); });
+    const r = $("#coRecv", el); if (r) r.onchange = e => { recv = e.target.value; redraw(); };
+    $("[data-ok]", el).onclick = () => {
+      const now = Date.now();
+      const sale = Object.assign({}, t, {lines:t.lines.map(l => Object.assign({}, l)), subtotal:sub, discount:disc, total:Math.max(0, sub - disc), method, guests:t.guests || guests, closedAt:now, biz:bizDate(now), paidAt:method === "ツケ" ? null : now});
+      D.sales.push(sale); delete D.open[t.table]; undoStack = undoStack.filter(u => u.table !== t.table);
+      save(); closeSheet(); go("tables"); toast(`${t.table}　${yen(sale.total)}　お会計しました`);
+    };
+  };
+  const redraw = () => { const el = $(".sheet"); if (!el) return; el.innerHTML = draw(); mount(el); };
+  openSheet(draw(), mount);
+}
+function saleSheet(s){
+  if (!s) return;
+  const cu = s.customerId && D.customers.find(c => c.id === s.customerId);
+  openSheet(`<h2>${esc(s.table)}　${dateLabel(s.biz)} ${hm(s.closedAt)}</h2>
+    <p class="small muted" style="margin-top:-6px">${cu ? esc(cu.name) + "さん・" : ""}${s.guests || "–"}名・${esc(s.method)}${s.method === "ツケ" ? (s.paidAt ? "（入金済）" : "（未収）") : ""}</p>
+    <div class="tbl-wrap"><table><tbody>${s.lines.map(l => `<tr><td>${esc(l.name)}${l.variant ? " " + esc(l.variant) : ""}</td><td class="r num">×${l.qty}</td><td class="r num">${yen(l.qty * l.price)}</td></tr>`).join("")}
+    ${s.discount ? `<tr><td>値引き</td><td></td><td class="r num">−${yen(s.discount)}</td></tr>` : ""}<tr><td><b>合計</b></td><td></td><td class="r num"><b>${yen(s.total)}</b></td></tr></tbody></table></div>
+    <div class="acts"><button class="btn danger" data-del>この記録を消す</button><button class="btn" data-reopen>伝票に戻す</button><button class="btn pri" data-x>閉じる</button></div>`, el => {
+    $("[data-x]", el).onclick = closeSheet;
+    $("[data-del]", el).onclick = () => confirmSheet("記録を消しますか？", "売上からこのお会計を取り除きます。元に戻せません。", "消す", () => { D.sales = D.sales.filter(x => x !== s); save(); render(); });
+    $("[data-reopen]", el).onclick = () => {
+      if (D.open[s.table]) { toast(s.table + "は使用中です。先にその伝票を閉じてください"); return; }
+      D.sales = D.sales.filter(x => x !== s);
+      D.open[s.table] = {id:s.id, table:s.table, openedAt:s.openedAt, lastAt:Date.now(), guests:s.guests, customerId:s.customerId, lines:s.lines};
+      save(); closeSheet(); go("ticket", s.table); toast("伝票に戻しました。直してからもう一度お会計してください");
+    };
+  });
+}
+
+/* ---------- menu editing ---------- */
+function itemSheet(it){
+  const isNew = !it;
+  const cats = [...new Set(["日本酒","ドリンク","料理", ...D.menu.map(m => m.cat)])];
+  const vtext = it ? it.variants.map(v => v.label ? `${v.label} ${v.price}` : String(v.price)).join("\n") : "";
+  openSheet(`<h2>${isNew ? "品目を追加" : "品目を編集"}</h2>
+    <div class="field"><label for="miN">名前</label><input id="miN" value="${esc(it ? it.name : "")}" placeholder="例：獺祭 純米大吟醸45"></div>
+    <div class="field"><label for="miC">分類</label><input id="miC" list="miCats" value="${esc(it ? it.cat : "日本酒")}"><datalist id="miCats">${cats.map(c => `<option value="${esc(c)}">`).join("")}</datalist></div>
+    <div class="field"><label for="miA">呼び方（読みがな・略称をカンマ区切りで）</label><input id="miA" value="${esc(it ? (it.alias || []).join("、") : "")}" placeholder="例：獺祭、だっさい"></div>
+    <div class="field"><label for="miV">値段（1行に「量 値段」。量がなければ値段だけ）</label><textarea id="miV" rows="4" placeholder="一合 1400&#10;半合 750&#10;グラス 800">${esc(vtext)}</textarea></div>
+    <p class="small muted">一合・半合・グラスと書くと、売上画面で合数と一升瓶の何本分かを計算します。</p>
+    <div class="acts">${isNew ? "" : `<button class="btn danger" data-del>削除</button>`}<button class="btn" data-x>やめる</button><button class="btn pri" data-ok>保存</button></div>`, el => {
+    $("[data-x]", el).onclick = closeSheet;
+    $("[data-ok]", el).onclick = () => {
+      const name = $("#miN", el).value.trim(); if (!name) { toast("名前を入れてください"); return; }
+      const variants = $("#miV", el).value.split(/\n/).map(s => s.trim()).filter(Boolean).map(s => {
+        const m = s.normalize("NFKC").match(/^(.*?)[\s:：]*([\d,]+)\s*円?$/); if (!m) return null;
+        const label = m[1].trim(); return {label, price:+m[2].replace(/,/g, ""), go:goOf(label)};
+      }).filter(Boolean);
+      if (!variants.length) { toast("値段を入れてください（例：一合 1400）"); return; }
+      const alias = $("#miA", el).value.split(/[,、，]/).map(s => s.trim()).filter(Boolean);
+      const o = it || {id:uid()};
+      Object.assign(o, {name, cat:$("#miC", el).value.trim() || "その他", alias, variants});
+      if (isNew) D.menu.push(o);
+      D.sampleMenu = false; buildIndex(); save(); closeSheet(); render();
+    };
+    const d = $("[data-del]", el); if (d) d.onclick = () => confirmSheet("削除しますか？", esc(it.name) + "をメニューから消します。過去の売上の記録は残ります。", "削除する", () => { D.menu = D.menu.filter(m => m !== it); D.sampleMenu = false; buildIndex(); save(); render(); });
+  });
+}
+
+/* ---------- files ---------- */
+async function saveFile(filename, text, type){
+  const blob = new Blob([text], {type});
+  try {
+    if (window.claude && window.claude.use) { const dl = await window.claude.use("downloads"); if (dl) { await dl.save({filename, data:blob}); return; } }
+  } catch(e){ if (e && e.code === "declined") return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function csv(sales){
+  const q = v => { const s = String(v ?? ""); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const rows = [["営業日","お会計時刻","卓","お客さん","人数","支払い","品目","量","単価","数量","金額","伝票合計","値引き"]];
+  for (const s of sales) { const cu = s.customerId && D.customers.find(c => c.id === s.customerId);
+    for (const l of s.lines) rows.push([s.biz, new Date(s.closedAt).toLocaleString("ja-JP"), s.table, cu ? cu.name : "", s.guests || "", s.method, l.name, l.variant, l.price, l.qty, l.price * l.qty, s.total, s.discount || 0]); }
+  return "﻿" + rows.map(r => r.map(q).join(",")).join("\r\n");
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  if (e.target.matches("[data-scrim]")) { pending = null; closeSheet(); return; }
+  const b = e.target.closest("[data-act],[data-tab]"); if (!b) return;
+  if (b.dataset.tab) { go(b.dataset.tab); return; }
+  const a = b.dataset.act;
+  if (a === "openTable") guestsSheet(b.dataset.t, () => go("ticket", b.dataset.t));
+  else if (a === "showTicket") go("ticket", b.dataset.t);
+  else if (a === "goTables") go("tables");
+  else if (a === "goMenu") go("menu");
+  else if (a === "guests") { const t = D.open[curTable]; setGuests(t, (t.guests || 0) + +b.dataset.d); save(); render(); }
+  else if (a === "lineQty") { const t = D.open[curTable]; const l = t.lines.find(x => x.id === b.dataset.id); l.qty += +b.dataset.d; if (l.qty <= 0) t.lines.splice(t.lines.indexOf(l), 1); save(); render(); }
+  else if (a === "cat") { curCat = b.dataset.c; render(); }
+  else if (a === "quickAdd") { const it = D.menu.find(m => m.id === b.dataset.id); const t = D.open[curTable];
+    const add = vi => { const l = addLine(t, it, vi, 1); undoStack.push({table:t.table, added:[{id:l.id, qty:1}], created:false}); save(); render(); };
+    it.variants.length > 1 ? variantSheet(it, add) : add(0); }
+  else if (a === "pickCust") custPicker(D.open[curTable]);
+  else if (a === "checkout") checkoutSheet();
+  else if (a === "discard") confirmSheet("伝票を消しますか？", esc(curTable) + "の注文をすべて消します。売上には入りません。", "消す", () => { delete D.open[curTable]; save(); go("tables"); });
+  else if (a === "salesShift") { salesDate = shiftDate(salesDate, +b.dataset.d); render(); }
+  else if (a === "salesDate") { salesDate = b.dataset.d; render(); }
+  else if (a === "showSale") saleSheet(D.sales.find(s => s.id === b.dataset.id));
+  else if (a === "csvDay") saveFile(`売上_${salesDate}.csv`, csv(D.sales.filter(s => s.biz === salesDate)), "text/csv");
+  else if (a === "csvAll") saveFile(`売上_全期間.csv`, csv(D.sales), "text/csv");
+  else if (a === "newCust") custEditSheet(null);
+  else if (a === "showCust") custDetail(D.customers.find(c => c.id === b.dataset.id));
+  else if (a === "editItem") itemSheet(D.menu.find(m => m.id === b.dataset.id) || null);
+  else if (a === "saveSettings") {
+    const s = D.settings;
+    const tables = $("#setTables").value.split(/[,、，]/).map(x => x.trim()).filter(Boolean);
+    if (tables.length) D.tables = [...new Set(tables)];
+    s.otoshiName = $("#setOtoshi").value; s.autoOtoshi = $("#setAutoOtoshi").checked;
+    s.idleMin = Math.max(5, +$("#setIdle").value || 40); s.cutoff = Math.min(12, Math.max(0, +$("#setCutoff").value || 0));
+    s.autoConfirm = $("#setAuto").checked; s.confirmSec = Math.min(15, Math.max(1, +$("#setSec").value || 4)); s.speak = $("#setSpeak").checked;
+    save(); render(); toast("設定を保存しました");
+  }
+  else if (a === "backup") saveFile(`お会計バックアップ_${bizDate(Date.now())}.json`, JSON.stringify(D), "application/json");
+  else if (a === "wipe") confirmSheet("すべて消しますか？", "メニュー・売上・お客さんの記録がすべて消えます。先にバックアップを保存してください。", "すべて消す", () => { D = seed(); buildIndex(); save(); go("tables"); });
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "custSearch") { custQuery = e.target.value; const pos = e.target.selectionStart; render(); const i = $("#custSearch"); i.focus(); try { i.setSelectionRange(pos, pos); } catch(_){} }
+});
+document.addEventListener("change", e => {
+  if (e.target.id === "restoreFile" && e.target.files[0]) {
+    const f = e.target.files[0]; const r = new FileReader();
+    r.onload = () => { try { const d = JSON.parse(r.result); if (!d || !Array.isArray(d.menu) || !Array.isArray(d.sales)) throw 0;
+      confirmSheet("バックアップから戻しますか？", "いまのデータはバックアップの内容に置き換わります。", "戻す", () => { D = d; D.settings = Object.assign(seed().settings, D.settings || {}); buildIndex(); save(); go("tables"); toast("バックアップから戻しました"); }); }
+      catch(_){ toast("このファイルは読み込めません"); } };
+    r.readAsText(f);
+  }
+});
+setInterval(() => { if (view === "tables" && !$(".scrim")) render(); }, 60000);
+
+/* ---------- PWA ---------- */
+try { if ("serviceWorker" in navigator && location.protocol === "https:" && window.top === window.self) navigator.serviceWorker.register("sw.js").catch(() => {}); } catch(e){}
+
+window.__izk = {parseUtter, norm, get D(){ return D; }};
+buildIndex(); render();
+})();
+</script>
