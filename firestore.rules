@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // お店ごとのデータ。合言葉（20文字）を知っている端末だけが読み書きできる
+    match /shops/{shopId}/{coll}/{docId} {
+      allow read, write: if request.auth != null && shopId.size() >= 20
+        && coll in ['menu', 'customers', 'sales', 'open', 'config'];
+    }
+  }
+}
