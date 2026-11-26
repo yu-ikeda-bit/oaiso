@@ -274,7 +274,14 @@ function save(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 120); 
 function saveLocal(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveNow, 120); }
 
 /* ---------- cloud sync (Firebase) ---------- */
-const FIREBASE_CONFIG = null;
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBkuABJj-4WGI7bqgbhszCK7RgSqPms6fQ",
+  authDomain: "oaiso-db9b0.firebaseapp.com",
+  projectId: "oaiso-db9b0",
+  storageBucket: "oaiso-db9b0.firebasestorage.app",
+  messagingSenderId: "156211996764",
+  appId: "1:156211996764:web:4cfd977ab476bd24b6de99"
+};
 const FB_VER = "10.12.5";
 const SHOP_KEY = "izk-shop";
 const COLLS = ["menu", "customers", "sales", "open", "config"];
